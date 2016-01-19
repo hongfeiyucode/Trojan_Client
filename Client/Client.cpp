@@ -22,6 +22,25 @@ using namespace std;
 char MacAddr[MAC_ADDR_LEN];
 char cmdbuffer[DEFAULT_BUFLEN] = { 0 };          //用1024的空间来存储输出的内容，只要不是显示文件内容，一般情况下是够用了。  
 
+char* protocolHead = "GET http://127.0.0.1:4000/ HTTP/1.1\r\n"
+"Accept: text/html, application/xml, */*\r\nAccept-Language: zh-cn\r\n"
+"Accept-Encoding: gzip, deflate\r\nHost: 127.0.0.1:4000\r\n"
+"User-Agent: Browser <0.1>\r\nConnection: Keep-Alive\r\n\r\n";
+
+char* PostHead = "POST http://127.0.0.1:4000/ HTTP/1.1\r\n"
+"Accept: text/html, application/xml, */*\r\nAccept-Language: zh-cn\r\n"
+"Accept-Encoding: gzip, deflate\r\nHost: 127.0.0.1:4000\r\n"
+"User-Agent: Browser <0.1>\r\nConnection: Keep-Alive\r\n\r\n";
+
+char* combine(char *s1, char *s2)
+{
+	char *result = (char *)malloc(strlen(s1) + strlen(s2) + 1);
+	if (result == NULL) exit(1);
+	strcpy(result, s1);
+	strcat(result, s2);
+	return result;
+}
+
 int getFileSizeSystemCall(char * strFileName)
 {
 	struct stat temp;
@@ -140,16 +159,25 @@ int main(int argc, char * argv[])
 	cout << "开始与服务器进行交互" << endl;
 	while ( true )
 	{
-		//cin.getline(SendBuffer, sizeof(SendBuffer));
-		// send mac address
-		Ret = send(ClientSocket, MacAddr, MAC_ADDR_LEN, 0);
-		cout << "发送mac地址：" << MacAddr << endl;
-		if ( Ret != MAC_ADDR_LEN )
+		Ret = send(ClientSocket, protocolHead, strlen(protocolHead), 0);
+		if (Ret>0) cout << "发送GET请求,"<< strlen(protocolHead)<<"字节"<< endl;
+		if (Ret != strlen(protocolHead))
 		{
-			cout<<"Send Info Error::"<<GetLastError()<<endl;
+			cout << "Send Info Error::" << GetLastError() << endl;
 			break;
 		}
 
+
+		//cin.getline(SendBuffer, sizeof(SendBuffer));
+		// send mac address
+		Ret = send(ClientSocket, combine(PostHead, MacAddr), MAC_ADDR_LEN + strlen(PostHead), 0);
+		cout << "发送POST请求,包含mac地址：" << MacAddr << endl;
+		if (Ret != MAC_ADDR_LEN + strlen(PostHead))
+		{
+			cout << "Send Info Error::" << GetLastError() << endl;
+			break;
+		}
+		
 		//
 		// recv cmd information
 		//
