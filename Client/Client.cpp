@@ -17,7 +17,7 @@ using namespace std;
 #define CMD_DOWNLOAD	2
 
 #define MAX_CMD_LEN		256
-#define MAC_ADDR_LEN	18
+#define MAC_ADDR_LEN	17
 #define DEFAULT_BUFLEN  1024
 char MacAddr[MAC_ADDR_LEN];
 char cmdbuffer[DEFAULT_BUFLEN] = { 0 };          //用1024的空间来存储输出的内容，只要不是显示文件内容，一般情况下是够用了。  
@@ -31,6 +31,18 @@ char* PostHead = "POST http://127.0.0.1:4000/ HTTP/1.1\r\n"
 "Accept: text/html, application/xml, */*\r\nAccept-Language: zh-cn\r\n"
 "Accept-Encoding: gzip, deflate\r\nHost: 127.0.0.1:4000\r\n"
 "User-Agent: Browser <0.1>\r\nConnection: Keep-Alive\r\n\r\n";
+
+char * killhead(char* headcmd)
+{
+	char * goal;
+	int len = strlen(headcmd) - (strstr(headcmd, "\r\n\r\n") - headcmd) - 4;
+	if (!len || len > 10000)return NULL;
+	cout << "数据包长度" << len << endl;
+	goal = strncpy(headcmd, strstr(headcmd, "\r\n\r\n") + 4, len);
+	goal[len] = '\0';
+	return goal;
+}
+
 
 char* combine(char *s1, char *s2)
 {
@@ -118,6 +130,7 @@ int main(int argc, char * argv[])
 	int AddrLen = 0;
 	HANDLE hThread = NULL;
 	char SendBuffer[MAX_PATH];
+	char RecvBuffer[MAX_PATH];
 	unsigned int reclen;
 	char CmdBuff[MAX_CMD_LEN];
 	char strCmdNo[2];
@@ -167,6 +180,12 @@ int main(int argc, char * argv[])
 			break;
 		}
 
+		memset(RecvBuffer, 0, MAX_PATH);
+		Ret = recv(ClientSocket, RecvBuffer, MAX_PATH, 0);
+		if (Ret > 0)
+		{
+			cout << "接收到Http响应：" << RecvBuffer << "(" << Ret << ")" << endl;
+		}
 
 		//cin.getline(SendBuffer, sizeof(SendBuffer));
 		// send mac address
@@ -177,7 +196,10 @@ int main(int argc, char * argv[])
 			cout << "Send Info Error::" << GetLastError() << endl;
 			break;
 		}
+
+
 		
+
 		//
 		// recv cmd information
 		//
@@ -199,9 +221,11 @@ int main(int argc, char * argv[])
 		{
 			bool suc;
 			char * error = "客户端执行该命令时返回异常！\n";
-			Ret = recvn(ClientSocket, CmdBuff, reclen);
-			if(Ret != reclen)
-				break;
+			//Ret = recvn(ClientSocket, CmdBuff, reclen);
+			Ret = recv(ClientSocket, RecvBuffer, MAX_PATH, 0);
+			char* CmdBuff = killhead(RecvBuffer);
+			cout << CmdBuff;
+			
 			cout << "执行指令！" << endl;
 			strCmdNo[0] = CmdBuff[0];
 			strCmdNo[1] = '\0';
