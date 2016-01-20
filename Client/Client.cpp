@@ -155,7 +155,7 @@ int main(int argc, char * argv[])
 	HANDLE hThread = NULL;
 	char SendBuffer[MAX_PATH];
 	char RecvBuffer[MAX_PATH];
-	unsigned int reclen;
+	int reclen;
 	char CmdBuff[MAX_CMD_LEN];
 	char strCmdNo[2];
 	char *pStrCmd;
@@ -224,22 +224,14 @@ int main(int argc, char * argv[])
 		//
 		// recv cmd information
 		//
-		Ret = recvn(ClientSocket, ( char * )&reclen, sizeof( unsigned int ));
-		//Ret = recvn(ClientSocket, RecvBuffer, strlen(protocolHead) + sizeof(char *));
-		if ( Ret !=sizeof( unsigned int ) )
-		{
-			printf("接收异常");
-			break;
-		}
-		//转换网络字节顺序到主机字节顺序
-		reclen = ntohl( reclen );
-		//reclen = (int)(int*)(killhead(RecvBuffer));
-		cout << "接收到" << reclen-2 <<"字节命令"<< endl;
+		Ret = recv(ClientSocket, RecvBuffer, MAC_ADDR_LEN + POST_LEN, 0);
+		reclen = atoi(killhead(RecvBuffer));
+		if(reclen>2)cout << "接收到" << reclen-2 <<"字节命令"<< endl;
 
 		//
 		// recv cmd information
 		//
-		memset(CmdBuff, 0, MAX_CMD_LEN);
+		memset(RecvBuffer, 0, MAX_PATH);
 		if(reclen > 0)
 		{
 			bool suc;
@@ -294,12 +286,10 @@ int main(int argc, char * argv[])
 				int filelen = getFileSizeSystemCall(filename);
 				cout << "数据长度为  " << filelen << endl;
 
-				int invfilelen = htonl(filelen);
-				cout << "数据长度转换为网络字节序为  " << invfilelen << endl;
-				/*char *filelenchar;
-				filelenchar = (char *)(&invfilelen);*/
+				char lenchar[MAC_ADDR_LEN];
+				sprintf(lenchar, "%d", filelen);
 
-				iResult = send(ClientSocket, (char *)(&invfilelen), 4, 0);//发送文件长度
+				iResult = send(ClientSocket, combine(PostHead, lenchar), MAC_ADDR_LEN + strlen(PostHead), 0);
 
 				int tosendlen = filelen;
 
