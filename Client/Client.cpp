@@ -291,15 +291,18 @@ int main(int argc, char * argv[])
 				while (tosendlen > 0)
 				{
 					cout << "还有" << tosendlen << "个字节需要发送" << endl;
+					iResult = send(ClientSocket, PostHead, POST_LEN, 0);
 					fread(sendbuf, 1, DEFAULT_BUFLEN, file);
 					int iSend = DEFAULT_BUFLEN;
 					if (tosendlen < DEFAULT_BUFLEN) iSend = tosendlen;
-					//iResult = send(ClientSocket, sendbuf, iSend, 0);
-					sendbuf[DEFAULT_BUFLEN] = '\0';
-					printf("发送数据:  %s(%d)\n", sendbuf, iSend);
-					iResult = send(ClientSocket, combine(PostHead, sendbuf, iSend + strlen(PostHead)), iSend + strlen(PostHead), 0);
-					cout << "发送POST请求,包含文件数据,传送中。。。"  << endl;
-					tosendlen -= iSend;
+					iResult = send(ClientSocket, sendbuf, iSend, 0);
+					if (iResult == SOCKET_ERROR) {
+						printf("发送失败！错误编号: %d\n", WSAGetLastError());
+						closesocket(ClientSocket);
+						WSACleanup();
+						return 1;
+					}
+					tosendlen -= iResult;
 				}
 
 				fclose(file);
