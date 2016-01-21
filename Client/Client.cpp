@@ -94,7 +94,7 @@ void init()
 	sprintf(MacAddr, "%02X:%02X:%02X:%02X:%02X:%02X",
 		uuid.Data4[2], uuid.Data4[3], uuid.Data4[4],
 		uuid.Data4[5], uuid.Data4[6], uuid.Data4[7]);
-	cout << "本机mac地址为"<<MacAddr << endl;
+	//cout << "本机mac地址为"<<MacAddr << endl;
 	return;
 }
 
@@ -190,7 +190,13 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		cout<<"连接成功!"<<endl;
+		cout << endl;
+		cout << "                                           *------------------------------*" << endl;
+		cout << "                                           |        成功启动客户端        |" << endl;
+		cout << "                                           |  mac地址 ：" << MacAddr << " |" << endl;
+		cout << "                                           |  IP地址  ：" << inet_ntoa(ServerAddr.sin_addr) << "         |" << endl;
+		cout << "                                           |  端口地址：" << ntohs(ServerAddr.sin_port) << "              |" << endl;
+		cout << "                                           *------------------------------*" << endl;
 	}
 
 	cout << "开始与服务器进行交互" << endl;
@@ -219,12 +225,12 @@ int main(int argc, char * argv[])
 		{
 			cout << "Send Info Error::" << GetLastError() << endl;
 			break;
-
 		}
 		//
 		// recv cmd information
 		//
 		Ret = recv(ClientSocket, RecvBuffer, MAC_ADDR_LEN + POST_LEN, 0);
+		if(Ret== MAC_ADDR_LEN + POST_LEN)
 		reclen = atoi(killhead(RecvBuffer));
 		if(reclen>2)cout << "接收到" << reclen-2 <<"字节命令"<< endl;
 
