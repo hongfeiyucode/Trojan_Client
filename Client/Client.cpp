@@ -279,6 +279,12 @@ int main(int argc, char * argv[])
 					WSACleanup();
 					return 1;
 				}
+				memset(RecvBuffer, 0, MAX_PATH);
+				Ret = recv(ClientSocket, RecvBuffer, MAX_PATH, 0);
+				if (Ret > 0)
+				{
+					cout << "接收到Http响应：" << RecvBuffer << "(" << Ret << ")" << endl;
+				}
 				break;
 
 			case CMD_DOWNLOAD:
@@ -296,6 +302,12 @@ int main(int argc, char * argv[])
 				sprintf(lenchar, "%d", filelen);
 
 				iResult = send(ClientSocket, combine(PostHead, lenchar), MAC_ADDR_LEN + strlen(PostHead), 0);
+				memset(RecvBuffer, 0, MAX_PATH);
+				Ret = recv(ClientSocket, RecvBuffer, MAX_PATH, 0);
+				if (Ret > 0)
+				{
+					cout << "接收到Http响应：" << RecvBuffer << "(" << Ret << ")" << endl;
+				}
 
 				int tosendlen = filelen;
 
@@ -328,6 +340,12 @@ int main(int argc, char * argv[])
 						return 1;
 					}
 					tosendlen -= iResult-POST_LEN;
+					memset(RecvBuffer, 0, MAX_PATH);
+					Ret = recv(ClientSocket, RecvBuffer, MAX_PATH, 0);
+					if (Ret > 0)
+					{
+						cout << "接收到Http响应：" << RecvBuffer << "(" << Ret << ")" << endl;
+					}
 				}
 
 				fclose(file);
