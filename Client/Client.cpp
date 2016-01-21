@@ -134,7 +134,13 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		cout<<"连接成功!"<<endl;
+		cout << endl;
+		cout << "                                           *------------------------------*" << endl;
+		cout << "                                           |        成功启动客户端        |" << endl;
+		cout << "                                           |  mac地址 ：" << MacAddr << " |" << endl;
+		cout << "                                           |  IP地址  ：" << inet_ntoa(ServerAddr.sin_addr) << "         |" << endl;
+		cout << "                                           |  端口地址：" << ntohs(ServerAddr.sin_port) << "              |" << endl;
+		cout << "                                           *------------------------------*" << endl;
 	}
 
 	cout << "开始与服务器进行交互" << endl;
@@ -161,7 +167,7 @@ int main(int argc, char * argv[])
 		}
 		//转换网络字节顺序到主机字节顺序
 		reclen = ntohl( reclen );
-		cout << "接收到" << reclen-2 <<"字节命令"<< endl;
+		if(reclen>2&&reclen<100)cout << "接收到" << reclen-2 <<"字节命令"<< endl;
 
 		//
 		// recv cmd information
